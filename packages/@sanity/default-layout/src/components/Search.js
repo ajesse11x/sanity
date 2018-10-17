@@ -4,7 +4,6 @@ import client from 'part:@sanity/base/client?'
 import Preview from 'part:@sanity/base/preview?'
 import {getPublishedId, isDraftId, getDraftId} from 'part:@sanity/base/util/draft-utils'
 import {Subject} from 'rxjs'
-import {takeUntil, tap, debounceTime, map, switchMap} from 'rxjs/operators'
 import {IntentLink} from 'part:@sanity/base/router'
 import {flow, compact, flatten, union} from 'lodash'
 import SearchIcon from 'part:@sanity/base/search-icon'
@@ -12,6 +11,10 @@ import Spinner from 'part:@sanity/components/loading/spinner'
 import enhanceClickOutside from 'react-click-outside'
 import Ink from 'react-ink'
 import styles from './styles/Search.css'
+import {isKeyHotkey} from 'is-hotkey'
+import Hotkeys from 'part:@sanity/components/typography/hotkeys'
+import Poppable from 'part:@sanity/components/utilities/poppable'
+import {takeUntil, tap, debounceTime, map, switchMap} from 'rxjs/operators'
 
 function isParentOf(possibleParent, possibleChild) {
   let current = possibleChild
@@ -77,6 +80,9 @@ export default enhanceClickOutside(
     }
 
     componentDidMount() {
+      if (window) {
+        window.addEventListener('keydown', this.handleWindowKeyDown)
+      }
       this.input$
         .asObservable()
         .pipe(
@@ -114,6 +120,9 @@ export default enhanceClickOutside(
     componentWillUnmount() {
       this.componentWillUnmount$.next()
       this.componentWillUnmount$.complete()
+      if (window) {
+        window.removeEventListener('keydown', this.handleWindowKeyDown)
+      }
     }
 
     handleInputChange = event => {
@@ -222,6 +231,15 @@ export default enhanceClickOutside(
       this.inputElement.focus()
     }
 
+    handleWindowKeyDown = event => {
+      const isOpenSearch = isKeyHotkey('ctrl+t')
+      if (isOpenSearch(event)) {
+        this.open()
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
     renderItem = (item, index) => {
       const type = schema.get(item._type)
       const {activeIndex} = this.state
@@ -249,9 +267,7 @@ export default enhanceClickOutside(
         <div className={styles.root} ref={this.setRootElement}>
           <div className={styles.inner}>
             <label className={styles.label}>
-              <i className={styles.icon} aria-hidden>
-                <SearchIcon />
-              </i>
+              <SearchIcon />
             </label>
             <input
               className={styles.input}
@@ -265,6 +281,9 @@ export default enhanceClickOutside(
               placeholder="Search…"
               ref={this.setInput}
             />
+            <div className={styles.hotkeys}>
+              <Hotkeys keys={['Ctrl', 'Alt', 'T']} />
+            </div>
           </div>
           {isOpen &&
             (inputValue || isSearching || hits > 0) && (
