@@ -1,4 +1,4 @@
-/* eslint-disable complexity */
+import PropTypes from 'prop-types'
 import React from 'react'
 import schema from 'part:@sanity/base/schema?'
 import client from 'part:@sanity/base/client?'
@@ -8,9 +8,9 @@ import {Subject} from 'rxjs'
 import {IntentLink} from 'part:@sanity/base/router'
 import {flow, compact, flatten, union} from 'lodash'
 import Ink from 'react-ink'
-import styles from './styles/Search.css'
-import SearchWidget from './SearchWidget'
 import {takeUntil, tap, debounceTime, map, switchMap} from 'rxjs/operators'
+import SearchWidget from './SearchWidget'
+import styles from './styles/Search.css'
 
 // Removes published documents that also has a draft
 function removeDupes(documents) {
@@ -56,17 +56,21 @@ class SearchController extends React.Component {
   input$ = new Subject()
   componentWillUnmount$ = new Subject()
 
+  static propTypes = {
+    onOpen: PropTypes.func.isRequired,
+    onClose: PropTypes.func.isRequired,
+    isOpen: PropTypes.bool.isRequired
+  }
+
   state = {
-    isOpen: false,
+    // isOpen: false,
     hits: [],
     activeIndex: -1,
     inputValue: ''
   }
 
   componentDidMount() {
-    if (window) {
-      window.addEventListener('keydown', this.handleWindowKeyDown)
-    }
+    window.addEventListener('keydown', this.handleWindowKeyDown)
 
     this.input$
       .asObservable()
@@ -103,25 +107,30 @@ class SearchController extends React.Component {
   }
 
   componentWillUnmount() {
+    window.removeEventListener('keydown', this.handleWindowKeyDown)
+
     this.componentWillUnmount$.next()
     this.componentWillUnmount$.complete()
   }
 
   handleInputChange = event => {
     this.input$.next(event)
-    this.setState({isOpen: true})
+    // this.setState({isOpen: true})
   }
 
   handleClose = event => {
+    this.props.onClose()
     this.setState({
-      isOpen: false
+      inputValue: ''
+      // isOpen: false
     })
   }
 
   handleOpen = event => {
-    this.setState({
-      isOpen: true
-    })
+    this.props.onOpen()
+    // this.setState({
+    //   isOpen: true
+    // })
   }
 
   handleHitMouseDown = ev => {
@@ -132,23 +141,12 @@ class SearchController extends React.Component {
 
   handleHitClick = event => {
     this.handleClose()
-    this.handleClear()
   }
 
-  handleClear = event => {
-    this.setState({
-      inputValue: ''
-    })
-  }
-
-  handleClear = event => {
-    this.setState({
-      inputValue: ''
-    })
-  }
-
+  /* eslint-disable-next-line complexity */
   handleKeyDown = event => {
-    const {isOpen, hits, activeIndex} = this.state
+    const {isOpen} = this.props
+    const {hits, activeIndex} = this.state
     const isArrowKey = ['ArrowUp', 'ArrowDown'].includes(event.key)
 
     if (event.key === 'Backspace') {
@@ -158,7 +156,7 @@ class SearchController extends React.Component {
       this.handleClose()
     }
     if (event.key === 'Enter') {
-      this.listElement.querySelector(`[data-hit-index="${this.state.activeIndex}"]`).click()
+      // this.listElement.querySelector(`[data-hit-index="${this.state.activeIndex}"]`).click()
     }
 
     if (!isOpen && isArrowKey) {
@@ -201,12 +199,13 @@ class SearchController extends React.Component {
   }
 
   render() {
-    const {isSearching, hits, isOpen, inputValue, activeIndex} = this.state
+    const {isOpen} = this.props
+    const {isSearching, hits, inputValue, activeIndex} = this.state
     return (
       <SearchWidget
         isSearching={isSearching}
-        hits={hits}
         isOpen={isOpen}
+        hits={hits}
         onOpen={this.handleOpen}
         onClose={this.handleClose}
         inputValue={inputValue}
@@ -214,9 +213,7 @@ class SearchController extends React.Component {
         onInputChange={this.handleInputChange}
         onKeyDown={this.handleKeyDown}
         onKeyPress={this.handleKeyPress}
-        onBlur={this.handleClose}
         onFocus={this.handleOpen}
-        onClear={this.handleClear}
         activeIndex={activeIndex}
       />
     )

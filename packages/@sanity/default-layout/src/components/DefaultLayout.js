@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import schema from 'part:@sanity/base/schema'
+import CloseIcon from 'part:@sanity/base/close-icon'
 import SanityStudioLogo from 'part:@sanity/base/sanity-studio-logo'
 import DataAspectsResolver from 'part:@sanity/data-aspects/resolver'
 import AppLoadingScreen from 'part:@sanity/base/app-loading-screen'
@@ -38,6 +39,7 @@ export default withRouterHOC(
       createMenuIsOpen: false,
       menuIsOpen: false,
       showLoadingScreen: true,
+      searchIsOpen: false,
       loaded: false
     }
 
@@ -96,6 +98,14 @@ export default withRouterHOC(
       }))
     }
 
+    handleSearchOpen = () => {
+      this.setState({searchIsOpen: true})
+    }
+
+    handleSearchClose = () => {
+      this.setState({searchIsOpen: false})
+    }
+
     handleSwitchTool = () => {
       if (window && !window.matchMedia('all and (min-width: 32em)').matches) {
         this.setState({
@@ -110,7 +120,7 @@ export default withRouterHOC(
 
     renderContent = () => {
       const {tools, router} = this.props
-      const {createMenuIsOpen, menuIsOpen} = this.state
+      const {createMenuIsOpen, menuIsOpen, searchIsOpen} = this.state
 
       const TYPE_ITEMS = dataAspects
         .getInferredTypes()
@@ -130,6 +140,7 @@ export default withRouterHOC(
 
       return (
         <div className={styles.root}>
+          <div className={styles.rootShade} data-visible={menuIsOpen || searchIsOpen} />
           {this.state.showLoadingScreen && (
             <div
               className={
@@ -151,29 +162,54 @@ export default withRouterHOC(
               onSwitchTool={this.handleSwitchTool}
               router={router}
               user={this.state.user}
+              searchIsOpen={searchIsOpen}
               /* eslint-disable-next-line react/jsx-handler-names */
               onUserLogout={userStore.actions.logout}
+              onSearchOpen={this.handleSearchOpen}
+              onSearchClose={this.handleSearchClose}
             />
           </div>
 
           <div className={styles.mainArea}>
             <div className={menuIsOpen ? styles.menuIsOpen : styles.menuIsClosed}>
-              {HAS_SPACES && (
-                <div className={styles.spaceSwitcher}>
-                  <SpaceSwitcher />
+              <div>
+                <button
+                  className={styles.menuCloseButton}
+                  type="button"
+                  onClick={this.handleToggleMenu}
+                  title="Close menu"
+                >
+                  <CloseIcon />
+                </button>
+
+                <div className={styles.userProfile}>
+                  <div className={styles.userProfileImage}>
+                    <img src={this.state.user.profileImage} />
+                  </div>
+                  <div className={styles.userProfileText}>{this.state.user.name}</div>
                 </div>
-              )}
-              <ToolSwitcher
-                direction="vertical"
-                tools={this.props.tools}
-                activeToolName={router.state.tool}
-                onSwitchTool={this.handleSwitchTool}
-              />
-              <div className={styles.menuBottom}>
-                <UpdateNotifier />
-                <a className={styles.sanityStudioLogoContainer} href="http://sanity.io">
-                  <SanityStudioLogo />
-                </a>
+
+                {HAS_SPACES && (
+                  <div className={styles.spaceSwitcher}>
+                    <SpaceSwitcher />
+                  </div>
+                )}
+                <ToolSwitcher
+                  direction="vertical"
+                  tools={this.props.tools}
+                  activeToolName={router.state.tool}
+                  onSwitchTool={this.handleSwitchTool}
+                />
+                <div className={styles.menuBottom}>
+                  <UpdateNotifier />
+                  <a className={styles.sanityStudioLogoContainer} href="http://sanity.io">
+                    <SanityStudioLogo />
+                  </a>
+                </div>
+
+                <div>
+                  <a>Sign out</a>
+                </div>
               </div>
             </div>
             <div className={styles.toolContainer}>
@@ -186,7 +222,9 @@ export default withRouterHOC(
           {createMenuIsOpen && (
             <ActionModal onClose={this.handleActionModalClose} actions={modalActions} />
           )}
-          {absolutes.map((Abs, i) => <Abs key={i} />)}
+          {absolutes.map((Abs, i) => (
+            <Abs key={i} />
+          ))}
         </div>
       )
     }

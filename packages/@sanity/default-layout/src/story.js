@@ -14,74 +14,81 @@ import ToolSwitcherWidget from './components/ToolSwitcherWidget'
 import NotFound from './components/NotFound'
 import LoginStatus from './components/LoginStatus'
 import Search from './components/SearchWidget'
+import SearchField from './components/SearchField'
 import ToolSwitcherItem from './components/ToolSwitcherItem'
+
 import NavBarStyles from './components/styles/NavBar.css'
 import DefaultLayoutStyles from './components/styles/DefaultLayout.css'
 
 storiesOf('Default layout')
   .addDecorator(withKnobs)
   .add('Example', () => {
+    const isMenuOpen = boolean('isMenuOpen', false, 'props')
+    const isSearchOpen = boolean('isSearchOpen', false, 'props')
     return (
-      <div className={DefaultLayoutStyles.navBar}>
-        <div className={NavBarStyles.root}>
-          <div className={NavBarStyles.hamburger}>
-            <button
-              className={NavBarStyles.hamburgerButton}
-              type="button"
-              title="Menu"
-              onClick={() => console.log('onClick()')}
-            >
-              <HamburgerIcon />
-            </button>
-          </div>
-          <a className={NavBarStyles.branding} href="#" onClick={evt => evt.preventDefault()}>
-            <Branding />
-          </a>
-          <a className={NavBarStyles.createButton} onClick={() => console.log('onClick()')}>
-            <span className={NavBarStyles.createButtonIcon}>
-              <PlusIcon />
-            </span>
-            <span className={NavBarStyles.createButtonText}>New</span>
-            <Ink duration={200} opacity={0.1} radius={200} />
-          </a>
-          <div className={NavBarStyles.search}>
-            <Search
-              inputValue={text('inputValue', '', 'props')}
-              onInputChange={event => console.log('onInputChange', event)}
-              isOpen={boolean('isOpen', false, 'props')}
-              isSearching={boolean('isSearching', false, 'props')}
-              renderItem={(i, index) => <div>Item</div>}
-              hits={object('hits', [{index: 0, _id: 'id0', name: 'Test'}], undefined, 'props')}
-            />
-          </div>
-          <div className={NavBarStyles.toolSwitcher}>
-            <ToolSwitcherWidget
-              onSwitchTool={event => console.log('onSwitchTool()', event)}
-              tools={[
-                {
-                  name: 'Desk tool',
-                  icon: ViewColumnIcon
-                },
-                {
-                  name: 'Plugin 1',
-                  icon: PluginIcon
-                },
-                {
-                  name: 'Plugin 2',
-                  icon: PluginIcon
-                }
-              ]}
-              renderItem={tool => <ToolSwitcherItem title={tool.name} icon={tool.icon} />}
-            />
-          </div>
-          <div className={NavBarStyles.loginStatus}>
-            <LoginStatus
-              user={{
-                name: 'John Doe',
-                profileImage: 'https://randomuser.me/api/portraits/men/12.jpg'
-              }}
-              onLogout={() => console.log('logout')}
-            />
+      <div className={DefaultLayoutStyles.root}>
+        <div className={DefaultLayoutStyles.rootShade} data-visible={isMenuOpen || isSearchOpen} />
+        <div className={DefaultLayoutStyles.navBar}>
+          <div className={NavBarStyles.root}>
+            <div className={NavBarStyles.hamburger}>
+              <button
+                className={NavBarStyles.hamburgerButton}
+                type="button"
+                title="Menu"
+                onClick={() => console.log('onClick()')}
+              >
+                <HamburgerIcon />
+              </button>
+            </div>
+            <a className={NavBarStyles.branding} href="#" onClick={evt => evt.preventDefault()}>
+              <Branding />
+            </a>
+            <a className={NavBarStyles.createButton} onClick={() => console.log('onClick()')}>
+              <span className={NavBarStyles.createButtonIcon}>
+                <PlusIcon />
+              </span>
+              <span className={NavBarStyles.createButtonText}>New</span>
+              <Ink duration={200} opacity={0.1} radius={200} />
+            </a>
+            <div className={NavBarStyles.search}>
+              <Search
+                inputValue={text('inputValue', '', 'props')}
+                onInputChange={event => console.log('onInputChange', event)}
+                isOpen={isSearchOpen}
+                isSearching={boolean('isSearching', false, 'props')}
+                renderItem={(i, index) => <div>Item</div>}
+                hits={object('hits', [{index: 0, _id: 'id0', name: 'Test'}], undefined, 'props')}
+              />
+            </div>
+            <div className={NavBarStyles.toolSwitcher}>
+              <ToolSwitcherWidget
+                onSwitchTool={event => console.log('onSwitchTool()', event)}
+                tools={[
+                  {
+                    name: 'Desk tool',
+                    icon: ViewColumnIcon
+                  },
+                  {
+                    name: 'Plugin 1',
+                    icon: PluginIcon
+                  },
+                  {
+                    name: 'Plugin 2',
+                    icon: PluginIcon
+                  }
+                ]}
+                renderItem={tool => <ToolSwitcherItem title={tool.name} icon={tool.icon} />}
+              />
+            </div>
+            <div className={NavBarStyles.loginStatus}>
+              <LoginStatus
+                user={{
+                  name: 'John Doe',
+                  profileImage: 'https://randomuser.me/api/portraits/men/12.jpg'
+                }}
+                onLogout={() => console.log('logout')}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -170,6 +177,40 @@ storiesOf('Default layout')
               }}
               onLogout={() => console.log('logout')}
             />
+          </div>
+        </div>
+      </div>
+    )
+  })
+  .add('Search Field (bleeding)', () => {
+    return (
+      <div style={{background: '#444', padding: '20px', height: '100vh'}}>
+        <div
+          style={{background: '#fff', maxWidth: '450px', margin: '0 auto', position: 'relative'}}
+        >
+          <SearchField
+            isBleeding
+            isOpen={boolean('isOpen', false, 'props')}
+            results={<React.Fragment>Results</React.Fragment>}
+            value="test"
+          />
+        </div>
+      </div>
+    )
+  })
+  .add('Search Field', () => {
+    return (
+      <div>
+        <div className={DefaultLayoutStyles.navBar}>
+          <div className={NavBarStyles.root}>
+            <div className={NavBarStyles.search}>
+              <SearchField
+                hotkeys={['F']}
+                isOpen={boolean('isOpen', false, 'props')}
+                results={<React.Fragment>Results</React.Fragment>}
+                value="test"
+              />
+            </div>
           </div>
         </div>
       </div>

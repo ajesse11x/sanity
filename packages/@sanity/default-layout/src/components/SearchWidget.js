@@ -1,5 +1,6 @@
 /* eslint-disable complexity */
 import React, {Fragment} from 'react'
+import {createPortal} from 'react-dom'
 import PropTypes from 'prop-types'
 import {get} from 'lodash'
 import Ink from 'react-ink'
@@ -24,6 +25,7 @@ function isParentOf(possibleParent, possibleChild) {
 
 class SearchWidget extends React.PureComponent {
   static propTypes = {
+    isOpen: PropTypes.bool,
     isSearching: PropTypes.bool,
     hits: PropTypes.arrayOf(
       PropTypes.shape({
@@ -31,29 +33,29 @@ class SearchWidget extends React.PureComponent {
         _id: PropTypes.string
       })
     ),
-    isOpen: PropTypes.bool,
     inputValue: PropTypes.string,
     renderItem: PropTypes.func.isRequired,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    // onClear: PropTypes.func,
     onInputChange: PropTypes.func.isRequired,
     onFocus: PropTypes.func,
     onBlur: PropTypes.func,
     onKeyDown: PropTypes.func,
-    onClear: PropTypes.func,
     activeIndex: PropTypes.number
   }
 
   static defaultProps = {
     hits: [],
     isOpen: false,
+    isSearching: false,
     inputValue: undefined,
     onOpen: () => {},
     onClose: () => {},
     onFocus: () => {},
     onBlur: () => {},
     onKeyDown: () => {},
-    onClear: () => {},
+    // onClear: () => {},
     activeIndex: undefined
   }
 
@@ -64,12 +66,16 @@ class SearchWidget extends React.PureComponent {
   componentDidMount() {
     if (window) {
       window.addEventListener('keydown', this.handleWindowKeyDown)
-      // TODO: Better check for mobile
-      if (window && !window.matchMedia('all and (min-width: 32em)').matches) {
-        this.setState({
-          isMobile: true
-        })
-      }
+      window.addEventListener('resize', this.handleResize)
+    }
+
+    this.handleResize()
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.isOpen && this.props.isOpen) {
+      // console.log('select', this.inputElement)
+      this.inputElement.focus()
     }
   }
 
@@ -77,14 +83,24 @@ class SearchWidget extends React.PureComponent {
     if (window) {
       window.removeEventListener('keydown', this.handleWindowKeyDown)
     }
+
+    if (this.mobilePortalNode) {
+      document.body.removeChild(this.mobilePortalNode)
+      this.mobilePortalNode = null
+    }
+  }
+
+  handleResize = () => {
+    // TODO: Better check for mobile
+    const isMobile = window && !window.matchMedia('all and (min-width: 32em)').matches
+
+    this.setState({
+      isMobile
+    })
   }
 
   handleInputChange = event => {
     this.props.onInputChange(event)
-  }
-
-  handleInputClick = el => {
-    // this.props.onClose()
   }
 
   handleFocus = el => {
@@ -109,18 +125,12 @@ class SearchWidget extends React.PureComponent {
     this.rootElement = el
   }
 
-  componentDidUpdate(prevProps) {
-    if (!prevProps.isOpen && this.props.isOpen) {
-      this.inputElement.select()
-    }
-  }
-
   handleEscape = () => {
     this.props.onClose()
   }
 
   handleClickOutside = () => {
-    this.props.onClose()
+    // this.props.onClose()
   }
 
   handleWindowKeyDown = event => {
@@ -154,18 +164,15 @@ class SearchWidget extends React.PureComponent {
           value={isOpen ? inputValue : ''}
           onChange={this.handleInputChange}
           onBlur={this.handleBlur}
-          onClick={this.handleInputClick}
           onFocus={this.handleFocus}
           onKeyDown={this.handleKeyDown}
           placeholder="Search"
           ref={this.setInput}
         />
-        {inputValue && (
-          <div className={styles.clearButton} onClick={this.props.onClear} title="Clear search">
-            <CloseIcon />
-            <Ink duration={1000} opacity={0.1} radius={200} />
-          </div>
-        )}
+        <div className={styles.clearButton} onClick={this.props.onClose} title="Clear search">
+          <CloseIcon />
+          <Ink duration={1000} opacity={0.1} radius={200} />
+        </div>
         <div className={styles.hotkeys}>
           {/* <Hotkeys keys={['Ctrl', 'Alt', 'T']} /> */}
           <Hotkeys keys={['F']} />
@@ -175,8 +182,15 @@ class SearchWidget extends React.PureComponent {
   }
 
   renderResult = () => {
-    const {isSearching, inputValue, hits, renderItem, activeIndex} = this.props
+    const {renderItem, activeIndex, isSearching, hits, isOpen, inputValue} = this.props
     const {isMobile} = this.state
+    const isResultShowing = Boolean(isOpen && (inputValue || isSearching || hits > 0))
+
+    if (!isResultShowing) {
+      // TODO: add recent documents here
+      return <div />
+    }
+
     return (
       <div className={styles.result}>
         {isSearching && (
@@ -188,7 +202,12 @@ class SearchWidget extends React.PureComponent {
           !isSearching &&
           (!hits || hits.length === 0) && (
             <div className={styles.noHits}>
-              Could not find <strong>&ldquo;{inputValue}&rdquo;</strong>
+              Could not find
+              <strong>
+                &ldquo;
+                {inputValue}
+                &rdquo;
+              </strong>
             </div>
           )}
         {!isSearching &&
@@ -208,18 +227,29 @@ class SearchWidget extends React.PureComponent {
     )
   }
 
+  renderMobileResult() {
+    const {isOpen, inputValue} = this.props
+    if (!this.mobilePortalNode) {
+      this.mobilePortalNode = document.createElement('div')
+      document.body.appendChild(this.mobilePortalNode)
+    }
+    return createPortal(
+      <div className={styles.mobileSearch} data-visible={isOpen}>
+        <div>
+          <div className={styles.mobileSearchField}>{this.renderInput(isOpen, inputValue)}</div>
+          <div className={styles.mobileSearchResult}>{this.renderResult()}</div>
+        </div>
+      </div>,
+      this.mobilePortalNode
+    )
+  }
+
   render() {
-    const {isSearching, hits, isOpen, inputValue} = this.props
+    const {isOpen, inputValue} = this.props
     const {isMobile} = this.state
-
-    const isResultShowing = Boolean(isOpen && (inputValue || isSearching || hits > 0))
-
     return (
-      <div
-        className={styles.root}
-        ref={this.setRootElement}
-        data-is-result-showing={isResultShowing}
-      >
+      <div className={styles.root} ref={this.setRootElement} data-is-result-showing={isOpen}>
+        {this.renderMobileResult()}
         <Poppable
           referenceClassName={styles.inner}
           onEscape={this.handleEscape}
@@ -232,16 +262,10 @@ class SearchWidget extends React.PureComponent {
               enabled: true,
               fn: data => {
                 const width = get(data, 'instance.reference.clientWidth') || 500
-                if (isMobile) {
-                  data.styles = {
-                    transform: 'none',
-                    top: '6rem'
-                  }
-                } else {
-                  data.styles = {
-                    ...data.styles,
-                    width: width
-                  }
+                data.styles = {
+                  ...data.styles,
+                  width,
+                  display: isMobile ? 'none' : 'block'
                 }
 
                 return data
@@ -250,7 +274,7 @@ class SearchWidget extends React.PureComponent {
           }}
           target={this.renderInput(isOpen, inputValue)}
         >
-          {isResultShowing && this.renderResult()}
+          {this.renderResult()}
         </Poppable>
       </div>
     )
